@@ -1,91 +1,203 @@
-import numpy as np  # Used to perform numerical operations on the data
-import pandas as pd  # Used to open CSV files and perform the operation (such as editing the data)
-import time as tm  # Imported for using sleep function
+import tkinter as tk
+from tkinter import messagebox, filedialog
+import pandas as pd
+import numpy as np
 
 
+# Global DataFrame to hold student data
+df = pd.DataFrame()
+
+
+# Authentication function
 def authenticate(name, password):
     username, Password = "admin", "ABC"
     return name == username and password == Password
 
 
-def Interface():
-    # User interface for login
-    name = input("Enter your username: ")
-    password = input("Enter your password: ")
+# Login function
+def login():
+    name = username_entry.get()
+    password = password_entry.get()
 
     if authenticate(name, password):
-        tm.sleep(1)
-        print("\nLogin Successful")
-        choice = input("Do you want to enter grades of students (y/n): ").lower()
-        if choice == "y":
-            Grading()  # Call the grading function
-        else:
-            print("Exiting...")
+        messagebox.showinfo("Login Successful", "Welcome to the Grading System!")
+        login_frame.pack_forget()
+        main_menu_frame.pack(fill="both", expand=True)
     else:
-        tm.sleep(1)
-        print("Login Failed")
+        messagebox.showerror("Login Failed", "Invalid username or password.")
 
 
-def open_file():
-    # Allow user to open an existing file or create a new one
-    while True:
+# Open/Create file function
+def open_file(option):
+    global df
+
+    if option == "open":
+        file_path = filedialog.askopenfilename(
+            title="Open CSV File",
+            filetypes=(("CSV Files", "*.csv"), ("All Files", "*.*")),
+        )
         try:
-            option = int(
-                input(
-                    "Do you want to (0) open an existing file, or (1) create a new file? Enter 0 or 1: "
-                )
-            )
+            df = pd.read_csv(file_path)
+            messagebox.showinfo("File Loaded", "File loaded successfully!")
+            file_frame.pack_forget()
+            grading_frame.pack(fill="both", expand=True)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to open file: {e}")
+    elif option == "create":
+        file_name = file_name_entry.get()
+        columns = columns_entry.get().split(",")
+        df = pd.DataFrame(columns=columns)
+        df.to_csv(file_name + ".csv", index=False)
+        messagebox.showinfo("File Created", f"New file '{file_name}.csv' created!")
+        file_frame.pack_forget()
+        grading_frame.pack(fill="both", expand=True)
 
-            if option == 0:
-                file_path = input("Enter the path of your file (CSV): ")
-                df = pd.read_csv(file_path)  # Load the file into a DataFrame
-                print("File loaded successfully!")
-                print(df)
-                return df
 
-            elif option == 1:
-                file_name = input(
-                    "Enter the name for the new file (without extension): "
-                )
-                columns = input(
-                    "Enter the column names separated by commas (e.g., Name, Marks): "
-                ).split(",")
-                df = pd.DataFrame(columns=columns)
-                df.to_csv(file_name + ".csv", index=False)
-                print(f"New file '{file_name}.csv' created successfully!")
-                return df
+# Add student grades
+def add_student():
+    global df
+    try:
+        name = name_entry.get()
+        marks = float(marks_entry.get())
+        new_row = {"Name": name, "Marks": marks}
+        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+        messagebox.showinfo("Success", "Student details added successfully!")
+        name_entry.delete(0, tk.END)
+        marks_entry.delete(0, tk.END)
+    except ValueError:
+        messagebox.showerror("Error", "Invalid marks. Please enter a numeric value.")
 
+
+# Apply absolute grading
+def absolute_grading():
+    global df
+    try:
+        df["Grade"] = pd.cut(
+            df["Marks"],
+            bins=[0, 50, 60, 70, 80, 100],
+            labels=["F", "D", "C", "B", "A"],
+            right=False,
+        )
+        messagebox.showinfo("Grading Successful", "Absolute grading applied!")
+    except KeyError:
+        messagebox.showerror("Error", "Marks column not found in the dataset.")
+    except Exception as e:
+        messagebox.showerror("Error", f"An error occurred: {e}")
+
+
+# Apply relative grading
+def relative_grading():
+    global df
+    try:
+        mean = df["Marks"].mean()
+        std_dev = df["Marks"].std()
+
+        # Assign grades based on Z-scores
+        def calculate_grade(marks):
+            z_score = (marks - mean) / std_dev
+            if z_score >= 1:
+                return "A"
+            elif 0.5 <= z_score < 1:
+                return "B"
+            elif -0.5 <= z_score < 0.5:
+                return "C"
+            elif -1 <= z_score < -0.5:
+                return "D"
             else:
-                print("Invalid input. Please enter 0 or 1.")
-        except ValueError:
-            print("Invalid input. Please enter a number (0 or 1).")
-        except FileNotFoundError:
-            print("File not found. Please check the path and try again.")
+                return "F"
+
+        df["Grade"] = df["Marks"].apply(calculate_grade)
+        messagebox.showinfo("Grading Successful", "Relative grading applied!")
+    except KeyError:
+        messagebox.showerror("Error", "Marks column not found in the dataset.")
+    except Exception as e:
+        messagebox.showerror("Error", f"An error occurred: {e}")
 
 
-def Grading():
-    # Function to handle grading logic
-    df = open_file()
-    if df is not None:
-        while True:
-            try:
-                print("\nEnter student details:")
-                name = input("Name: ")
-                marks = float(input("Marks: "))
-                new_row = {"Name": name, "Marks": marks}
-                df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-                print("Student details added successfully!")
+# Save grades to file
+def save_grades():
+    global df
+    save_path = filedialog.asksaveasfilename(
+        defaultextension=".csv",
+        filetypes=(("CSV Files", "*.csv"), ("All Files", "*.*")),
+    )
+    try:
+        df.to_csv(save_path, index=False)
+        messagebox.showinfo("Success", f"Data saved to '{save_path}' successfully!")
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to save file: {e}")
 
-                more = input("Do you want to add another student? (y/n): ").lower()
-                if more != "y":
-                    save_path = input(
-                        "Enter the file name to save (e.g., grades.csv): "
-                    )
-                    df.to_csv(save_path, index=False)
-                    print(f"Data saved to '{save_path}' successfully!")
-                    break
-            except ValueError:
-                print("Invalid marks. Please enter a numeric value.")
 
- 
-Interface()
+# GUI Setup
+root = tk.Tk()
+root.title("Grading System")
+root.geometry("400x400")
+
+# Login Frame
+login_frame = tk.Frame(root)
+login_frame.pack(fill="both", expand=True)
+
+tk.Label(login_frame, text="Username:").pack(pady=5)
+username_entry = tk.Entry(login_frame)
+username_entry.pack(pady=5)
+
+tk.Label(login_frame, text="Password:").pack(pady=5)
+password_entry = tk.Entry(login_frame, show="*")
+password_entry.pack(pady=5)
+
+tk.Button(login_frame, text="Login", command=login).pack(pady=20)
+
+# Main Menu Frame
+main_menu_frame = tk.Frame(root)
+
+tk.Label(main_menu_frame, text="Main Menu", font=("Helvetica", 16)).pack(pady=20)
+tk.Button(
+    main_menu_frame,
+    text="Open Existing File",
+    command=lambda: open_file("open"),
+).pack(pady=10)
+tk.Button(
+    main_menu_frame,
+    text="Create New File",
+    command=lambda: open_file("create"),
+).pack(pady=10)
+tk.Button(main_menu_frame, text="Exit", command=root.quit).pack(pady=10)
+
+# File Handling Frame
+file_frame = tk.Frame(root)
+
+tk.Label(file_frame, text="File Options", font=("Helvetica", 16)).pack(pady=20)
+
+tk.Label(file_frame, text="Create New File:").pack(pady=10)
+file_name_entry = tk.Entry(file_frame)
+file_name_entry.pack(pady=5)
+
+tk.Label(file_frame, text="Enter Columns (comma-separated):").pack(pady=10)
+columns_entry = tk.Entry(file_frame)
+columns_entry.pack(pady=5)
+
+# Grading Frame
+grading_frame = tk.Frame(root)
+
+tk.Label(grading_frame, text="Enter Student Details", font=("Helvetica", 16)).pack(
+    pady=20
+)
+tk.Label(grading_frame, text="Name:").pack(pady=5)
+name_entry = tk.Entry(grading_frame)
+name_entry.pack(pady=5)
+
+tk.Label(grading_frame, text="Marks:").pack(pady=5)
+marks_entry = tk.Entry(grading_frame)
+marks_entry.pack(pady=5)
+
+tk.Button(grading_frame, text="Add Student", command=add_student).pack(pady=10)
+tk.Button(grading_frame, text="Apply Absolute Grading", command=absolute_grading).pack(
+    pady=10
+)
+tk.Button(grading_frame, text="Apply Relative Grading", command=relative_grading).pack(
+    pady=10
+)
+tk.Button(grading_frame, text="Save Grades", command=save_grades).pack(pady=10)
+
+# Start the GUI
+root.mainloop()
