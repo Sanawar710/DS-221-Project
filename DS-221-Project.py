@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import messagebox, filedialog
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm
 
 
 # Global DataFrame to hold student data
@@ -21,8 +23,8 @@ def login():
 
     if authenticate(name, password):
         messagebox.showinfo("Login Successful", "Welcome to the Grading System!")
-        login_frame.pack_forget()
-        main_menu_frame.pack(fill="both", expand=True)
+        login_frame.pack_forget()  # Hide login frame
+        main_menu_frame.pack()  # Show main menu frame
     else:
         messagebox.showerror("Login Failed", "Invalid username or password.")
 
@@ -39,15 +41,17 @@ def open_file(option):
         try:
             df = pd.read_csv(file_path)
             messagebox.showinfo("File Loaded", "File loaded successfully!")
-            file_frame.pack_forget()
-            grading_frame.pack(fill="both", expand=True)
+            file_frame.pack_forget()  # Hide file frame
+            grading_frame.pack()  # Show grading frame
         except Exception as e:
             messagebox.showerror("Error", f"Failed to open file: {e}")
     elif option == "create":
-        file_name = file_name_entry.get()
+        file_name = file_name_entry.get()  # Get data entered by the user
         columns = columns_entry.get().split(",")
         df = pd.DataFrame(columns=columns)
-        df.to_csv(file_name + ".csv", index=False)
+        df.to_csv(
+            file_name + ".csv", index=False
+        )  # Index=False prevents labels from being stored in the CSV
         messagebox.showinfo("File Created", f"New file '{file_name}.csv' created!")
         file_frame.pack_forget()
         grading_frame.pack(fill="both", expand=True)
@@ -60,7 +64,9 @@ def add_student():
         name = name_entry.get()
         marks = float(marks_entry.get())
         new_row = {"Name": name, "Marks": marks}
-        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+        df = pd.concat(
+            [df, pd.DataFrame([new_row])], ignore_index=True
+        )  # Append new row to the DataFrame
         messagebox.showinfo("Success", "Student details added successfully!")
         name_entry.delete(0, tk.END)
         marks_entry.delete(0, tk.END)
@@ -128,6 +134,38 @@ def save_grades():
         messagebox.showerror("Error", f"Failed to save file: {e}")
 
 
+# Function to display histogram
+def plot_histogram():
+    global df
+    try:
+        plt.hist(df["Marks"], bins=10, edgecolor="black")
+        plt.title("Marks Distribution")
+        plt.xlabel("Marks")
+        plt.ylabel("Frequency")
+        plt.show()
+    except KeyError:
+        messagebox.showerror("Error", "Marks column not found in the dataset.")
+
+
+# Function to display normal distribution curve
+def plot_normal_curve():
+    global df
+    try:
+        mean = df["Marks"].mean()
+        std_dev = df["Marks"].std()
+        xmin, xmax = plt.xlim()
+        x = np.linspace(xmin, xmax, 100)
+        p = norm.pdf(x, mean, std_dev)
+        plt.plot(x, p, "k", linewidth=2)
+        title = "Normal Distribution Curve for Marks"
+        plt.title(title)
+        plt.xlabel("Marks")
+        plt.ylabel("Probability Density")
+        plt.show()
+    except KeyError:
+        messagebox.showerror("Error", "Marks column not found in the dataset.")
+
+
 # GUI Setup
 root = tk.Tk()
 root.title("Grading System")
@@ -135,7 +173,7 @@ root.geometry("400x400")
 
 # Login Frame
 login_frame = tk.Frame(root)
-login_frame.pack(fill="both", expand=True)
+login_frame.pack()
 
 tk.Label(login_frame, text="Username:").pack(pady=5)
 username_entry = tk.Entry(login_frame)
@@ -198,6 +236,15 @@ tk.Button(grading_frame, text="Apply Relative Grading", command=relative_grading
     pady=10
 )
 tk.Button(grading_frame, text="Save Grades", command=save_grades).pack(pady=10)
+
+# Graphing Frame (For Viewing Graphs)
+graph_frame = tk.Frame(root)
+
+tk.Label(graph_frame, text="Graphs", font=("Helvetica", 16)).pack(pady=20)
+tk.Button(graph_frame, text="Show Histogram", command=plot_histogram).pack(pady=10)
+tk.Button(
+    graph_frame, text="Show Normal Distribution Curve", command=plot_normal_curve
+).pack(pady=10)
 
 # Start the GUI
 root.mainloop()
