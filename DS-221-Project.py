@@ -5,7 +5,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
 
-
 # Global DataFrame to hold student data
 df = pd.DataFrame()
 
@@ -32,6 +31,7 @@ def login():
 # Open/Create file function
 def open_file(option):
     global df
+    file_frame.pack()  # Show file frame before performing operations
 
     if option == "open":
         file_path = filedialog.askopenfilename(
@@ -40,6 +40,8 @@ def open_file(option):
         )
         try:
             df = pd.read_csv(file_path)
+            if df.empty:
+                raise ValueError("The selected file is empty.")
             messagebox.showinfo("File Loaded", "File loaded successfully!")
             file_frame.pack_forget()  # Hide file frame
             grading_frame.pack()  # Show grading frame
@@ -49,9 +51,7 @@ def open_file(option):
         file_name = file_name_entry.get()  # Get data entered by the user
         columns = columns_entry.get().split(",")
         df = pd.DataFrame(columns=columns)
-        df.to_csv(
-            file_name + ".csv", index=False
-        )  # Index=False prevents labels from being stored in the CSV
+        df.to_csv(file_name + ".csv", index=False)
         messagebox.showinfo("File Created", f"New file '{file_name}.csv' created!")
         file_frame.pack_forget()
         grading_frame.pack(fill="both", expand=True)
@@ -60,13 +60,16 @@ def open_file(option):
 # Add student grades
 def add_student():
     global df
+    if df.empty:
+        messagebox.showerror(
+            "Error", "No dataset found. Please create or load a dataset."
+        )
+        return
     try:
         name = name_entry.get()
         marks = float(marks_entry.get())
         new_row = {"Name": name, "Marks": marks}
-        df = pd.concat(
-            [df, pd.DataFrame([new_row])], ignore_index=True
-        )  # Append new row to the DataFrame
+        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
         messagebox.showinfo("Success", "Student details added successfully!")
         name_entry.delete(0, tk.END)
         marks_entry.delete(0, tk.END)
@@ -77,6 +80,11 @@ def add_student():
 # Apply absolute grading
 def absolute_grading():
     global df
+    if df.empty:
+        messagebox.showerror(
+            "Error", "The dataset is empty. Please load or create a dataset first."
+        )
+        return
     try:
         df["Grade"] = pd.cut(
             df["Marks"],
@@ -94,11 +102,15 @@ def absolute_grading():
 # Apply relative grading
 def relative_grading():
     global df
+    if df.empty:
+        messagebox.showerror(
+            "Error", "The dataset is empty. Please load or create a dataset first."
+        )
+        return
     try:
         mean = df["Marks"].mean()
         std_dev = df["Marks"].std()
 
-        # Assign grades based on Z-scores
         def calculate_grade(marks):
             z_score = (marks - mean) / std_dev
             if z_score >= 1:
@@ -123,6 +135,11 @@ def relative_grading():
 # Save grades to file
 def save_grades():
     global df
+    if df.empty:
+        messagebox.showerror(
+            "Error", "The dataset is empty. Please load or create a dataset first."
+        )
+        return
     save_path = filedialog.asksaveasfilename(
         defaultextension=".csv",
         filetypes=(("CSV Files", "*.csv"), ("All Files", "*.*")),
@@ -137,6 +154,11 @@ def save_grades():
 # Function to display histogram
 def plot_histogram():
     global df
+    if df.empty:
+        messagebox.showerror(
+            "Error", "The dataset is empty. Please load or create a dataset first."
+        )
+        return
     try:
         plt.hist(df["Marks"], bins=10, edgecolor="black")
         plt.title("Marks Distribution")
@@ -150,15 +172,19 @@ def plot_histogram():
 # Function to display normal distribution curve
 def plot_normal_curve():
     global df
+    if df.empty:
+        messagebox.showerror(
+            "Error", "The dataset is empty. Please load or create a dataset first."
+        )
+        return
     try:
         mean = df["Marks"].mean()
         std_dev = df["Marks"].std()
-        xmin, xmax = plt.xlim()
+        xmin, xmax = df["Marks"].min(), df["Marks"].max()
         x = np.linspace(xmin, xmax, 100)
         p = norm.pdf(x, mean, std_dev)
         plt.plot(x, p, "k", linewidth=2)
-        title = "Normal Distribution Curve for Marks"
-        plt.title(title)
+        plt.title("Normal Distribution Curve for Marks")
         plt.xlabel("Marks")
         plt.ylabel("Probability Density")
         plt.show()
@@ -185,8 +211,7 @@ password_entry.pack(pady=5)
 
 tk.Button(login_frame, text="Login", command=login).pack(pady=20)
 
-# Main Menu Frame
-main_menu_frame = tk.Frame(root)
+main_menu_frame = tk.Frame(root)  # Main Menu Frame
 
 tk.Label(main_menu_frame, text="Main Menu", font=("Helvetica", 16)).pack(pady=20)
 tk.Button(
@@ -201,8 +226,7 @@ tk.Button(
 ).pack(pady=10)
 tk.Button(main_menu_frame, text="Exit", command=root.quit).pack(pady=10)
 
-# File Handling Frame
-file_frame = tk.Frame(root)
+file_frame = tk.Frame(root)  # File Handling Frame
 
 tk.Label(file_frame, text="File Options", font=("Helvetica", 16)).pack(pady=20)
 
@@ -237,8 +261,7 @@ tk.Button(grading_frame, text="Apply Relative Grading", command=relative_grading
 )
 tk.Button(grading_frame, text="Save Grades", command=save_grades).pack(pady=10)
 
-# Graphing Frame (For Viewing Graphs)
-graph_frame = tk.Frame(root)
+graph_frame = tk.Frame(root)  # Graphing Frame (For Viewing Graphs)
 
 tk.Label(graph_frame, text="Graphs", font=("Helvetica", 16)).pack(pady=20)
 tk.Button(graph_frame, text="Show Histogram", command=plot_histogram).pack(pady=10)
