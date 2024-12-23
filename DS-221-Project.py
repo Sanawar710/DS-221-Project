@@ -31,7 +31,6 @@ def login():
 # Open/Create file function
 def open_file(option):
     global df
-    file_frame.pack()  # Show file frame before performing operations
 
     if option == "open":
         file_path = filedialog.askopenfilename(
@@ -40,15 +39,13 @@ def open_file(option):
         )
         try:
             df = pd.read_csv(file_path)
-            if df.empty:
-                raise ValueError("The selected file is empty.")
             messagebox.showinfo("File Loaded", "File loaded successfully!")
-            file_frame.pack_forget()  # Hide file frame
-            grading_frame.pack()  # Show grading frame
+            file_frame.pack_forget()
+            grading_frame.pack(fill="both", expand=True)
         except Exception as e:
             messagebox.showerror("Error", f"Failed to open file: {e}")
     elif option == "create":
-        file_name = file_name_entry.get()  # Get data entered by the user
+        file_name = file_name_entry.get()
         columns = columns_entry.get().split(",")
         df = pd.DataFrame(columns=columns)
         df.to_csv(file_name + ".csv", index=False)
@@ -151,7 +148,7 @@ def save_grades():
         messagebox.showerror("Error", f"Failed to save file: {e}")
 
 
-# Function to display histogram
+# # Function to display histogram
 def plot_histogram():
     global df
     if df.empty:
