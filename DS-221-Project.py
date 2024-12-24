@@ -35,39 +35,43 @@ def open_file(option):
     if option == "open":
         file_path = filedialog.askopenfilename(
             title="Open CSV File",
-            filetypes=(("CSV Files", "*.csv"), ("All Files", "*.*")),
+            filetypes=(("CSV Files", ".csv"), ("All Files", ".*")),
         )
         try:
             df = pd.read_csv(file_path)
             messagebox.showinfo("File Loaded", "File loaded successfully!")
-            file_frame.pack_forget()
+            main_menu_frame.pack_forget()
             grading_frame.pack(fill="both", expand=True)
         except Exception as e:
             messagebox.showerror("Error", f"Failed to open file: {e}")
 
     elif option == "create":
-        # Prompt user for the file name and column names
-        file_name = file_name_entry.get("Enter the file name: ")
-        if not file_name:  # Check if the file name is empty
-            messagebox.showerror("Error", "Please enter a file name.")
-            return
+        # Show the file creation frame
+        main_menu_frame.pack_forget()
+        file_frame.pack(fill="both", expand=True)
 
-        columns = columns_entry.get().split(",")
-        if not columns:  # Check if the column names are empty
-            messagebox.showerror("Error", "Please enter column names.")
-            return
 
-        # Create the DataFrame with the provided column names
+# Create a new file with columns
+def create_file():
+    global df
+    file_name = file_name_entry.get().strip()
+    columns = columns_entry.get().strip().split(",")
+
+    if not file_name:
+        messagebox.showerror("Error", "Please enter a file name.")
+        return
+    if not columns or columns == [""]:
+        messagebox.showerror("Error", "Please enter column names.")
+        return
+
+    try:
         df = pd.DataFrame(columns=columns)
-
-        # Save the DataFrame as a new CSV file
-        try:
-            df.to_csv(file_name + ".csv", index=False)
-            messagebox.showinfo("File Created", f"New file '{file_name}.csv' created!")
-            file_frame.pack_forget()
-            grading_frame.pack(fill="both", expand=True)
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to create file: {e}")
+        df.to_csv(file_name + ".csv", index=False)
+        messagebox.showinfo("File Created", f"New file '{file_name}.csv' created!")
+        file_frame.pack_forget()
+        grading_frame.pack(fill="both", expand=True)
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to create file: {e}")
 
 
 # Add student grades
@@ -136,7 +140,7 @@ def save_grades():
     global df
     save_path = filedialog.asksaveasfilename(
         defaultextension=".csv",
-        filetypes=(("CSV Files", "*.csv"), ("All Files", "*.*")),
+        filetypes=(("CSV Files", ".csv"), ("All Files", ".*")),
     )
     try:
         df.to_csv(save_path, index=False)
@@ -145,7 +149,7 @@ def save_grades():
         messagebox.showerror("Error", f"Failed to save file: {e}")
 
 
-# # Function to display histogram
+# Function to display histogram
 def plot_histogram():
     global df
     if df.empty:
@@ -205,7 +209,8 @@ password_entry.pack(pady=5)
 
 tk.Button(login_frame, text="Login", command=login).pack(pady=20)
 
-main_menu_frame = tk.Frame(root)  # Main Menu Frame
+# Main Menu Frame
+main_menu_frame = tk.Frame(root)
 
 tk.Label(main_menu_frame, text="Main Menu", font=("Helvetica", 16)).pack(pady=20)
 tk.Button(
@@ -220,17 +225,22 @@ tk.Button(
 ).pack(pady=10)
 tk.Button(main_menu_frame, text="Exit", command=root.quit).pack(pady=10)
 
-file_frame = tk.Frame(root)  # File Handling Frame
+# File Creation Frame
+file_frame = tk.Frame(root)
 
-tk.Label(file_frame, text="File Options", font=("Helvetica", 16)).pack(pady=20)
-
-tk.Label(file_frame, text="Create New File:").pack(pady=10)
+tk.Label(file_frame, text="Create New File").pack(pady=10)
+tk.Label(file_frame, text="File Name:").pack(pady=5)
 file_name_entry = tk.Entry(file_frame)
 file_name_entry.pack(pady=5)
 
-tk.Label(file_frame, text="Enter Columns (comma-separated):").pack(pady=10)
+tk.Label(file_frame, text="Column Names (comma-separated):").pack(pady=5)
 columns_entry = tk.Entry(file_frame)
 columns_entry.pack(pady=5)
+
+tk.Button(file_frame, text="Create File", command=create_file).pack(pady=10)
+tk.Button(file_frame, text="Back", command=lambda: back_to_main_menu(file_frame)).pack(
+    pady=10
+)
 
 # Grading Frame
 grading_frame = tk.Frame(root)
@@ -257,13 +267,11 @@ tk.Button(grading_frame, text="Save Grades", command=save_grades).pack(pady=10)
 tk.Button(grading_frame, text="Plot Histogram", command=plot_histogram).pack()
 tk.Button(grading_frame, text="Plot Normal Curve", command=plot_normal_curve).pack()
 
-graph_frame = tk.Frame(root)  # Graphing Frame (For Viewing Graphs)
 
-tk.Label(graph_frame, text="Graphs", font=("Helvetica", 16)).pack(pady=20)
-tk.Button(graph_frame, text="Show Histogram", command=plot_histogram).pack(pady=10)
-tk.Button(
-    graph_frame, text="Show Normal Distribution Curve", command=plot_normal_curve
-).pack(pady=10)
+# Back to main menu function
+def back_to_main_menu(frame):
+    frame.pack_forget()
+    main_menu_frame.pack()
 
 # Start the GUI
 root.mainloop()
