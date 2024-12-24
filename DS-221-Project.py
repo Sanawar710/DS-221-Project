@@ -44,24 +44,35 @@ def open_file(option):
             grading_frame.pack(fill="both", expand=True)
         except Exception as e:
             messagebox.showerror("Error", f"Failed to open file: {e}")
+
     elif option == "create":
-        file_name = file_name_entry.get()
+        # Prompt user for the file name and column names
+        file_name = file_name_entry.get("Enter the file name: ")
+        if not file_name:  # Check if the file name is empty
+            messagebox.showerror("Error", "Please enter a file name.")
+            return
+
         columns = columns_entry.get().split(",")
+        if not columns:  # Check if the column names are empty
+            messagebox.showerror("Error", "Please enter column names.")
+            return
+
+        # Create the DataFrame with the provided column names
         df = pd.DataFrame(columns=columns)
-        df.to_csv(file_name + ".csv", index=False)
-        messagebox.showinfo("File Created", f"New file '{file_name}.csv' created!")
-        file_frame.pack_forget()
-        grading_frame.pack(fill="both", expand=True)
+
+        # Save the DataFrame as a new CSV file
+        try:
+            df.to_csv(file_name + ".csv", index=False)
+            messagebox.showinfo("File Created", f"New file '{file_name}.csv' created!")
+            file_frame.pack_forget()
+            grading_frame.pack(fill="both", expand=True)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to create file: {e}")
 
 
 # Add student grades
 def add_student():
     global df
-    if df.empty:
-        messagebox.showerror(
-            "Error", "No dataset found. Please create or load a dataset."
-        )
-        return
     try:
         name = name_entry.get()
         marks = float(marks_entry.get())
@@ -77,11 +88,6 @@ def add_student():
 # Apply absolute grading
 def absolute_grading():
     global df
-    if df.empty:
-        messagebox.showerror(
-            "Error", "The dataset is empty. Please load or create a dataset first."
-        )
-        return
     try:
         df["Grade"] = pd.cut(
             df["Marks"],
@@ -99,15 +105,11 @@ def absolute_grading():
 # Apply relative grading
 def relative_grading():
     global df
-    if df.empty:
-        messagebox.showerror(
-            "Error", "The dataset is empty. Please load or create a dataset first."
-        )
-        return
     try:
         mean = df["Marks"].mean()
         std_dev = df["Marks"].std()
 
+        # Assign grades based on Z-scores
         def calculate_grade(marks):
             z_score = (marks - mean) / std_dev
             if z_score >= 1:
@@ -132,11 +134,6 @@ def relative_grading():
 # Save grades to file
 def save_grades():
     global df
-    if df.empty:
-        messagebox.showerror(
-            "Error", "The dataset is empty. Please load or create a dataset first."
-        )
-        return
     save_path = filedialog.asksaveasfilename(
         defaultextension=".csv",
         filetypes=(("CSV Files", "*.csv"), ("All Files", "*.*")),
@@ -257,6 +254,8 @@ tk.Button(grading_frame, text="Apply Relative Grading", command=relative_grading
     pady=10
 )
 tk.Button(grading_frame, text="Save Grades", command=save_grades).pack(pady=10)
+tk.Button(grading_frame, text="Plot Histogram", command=plot_histogram).pack()
+tk.Button(grading_frame, text="Plot Normal Curve", command=plot_normal_curve).pack()
 
 graph_frame = tk.Frame(root)  # Graphing Frame (For Viewing Graphs)
 
