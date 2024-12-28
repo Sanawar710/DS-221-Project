@@ -181,7 +181,7 @@ def plot_normal_curve():
         xmin, xmax = df["Marks"].min(), df["Marks"].max()
         x = np.linspace(xmin, xmax, 100)
         p = norm.pdf(x, mean, std_dev)
-        plt.plot(x, p, "k", linewidth=2)
+        plt.plot(x, p / p.sum(), "k", linewidth=2)
         plt.title("Normal Distribution Curve for Marks")
         plt.xlabel("Marks")
         plt.ylabel("Probability Density")
